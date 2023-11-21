@@ -1,0 +1,14 @@
+--endpoint-url=http://localhost:4566 --profile localstack
+
+aws cloudformation create-stack --stack-name S3BucketCreation --template-body file://s3-bucket-template.yaml --endpoint-url=http://localhost:4566 --profile localstack
+
+aws cloudformation delete-stack --stack-name S3BucketCreation --endpoint-url=http://localhost:4566 --profile localstack
+
+aws s3 ls —endpoint-url=http://localhost:4566 --profile localstack
+
+aws cloudformation create-stack --stack-name SqsDlqLambdaCreation --template-body file://sqs-dql-lambda-template.yaml --endpoint-url=http://localhost:4566 --profile localstack
+
+
+aws cloudformation list-stacks  --endpoint-url=http://localhost:4566 --profile localstack
+
+aws cloudformation delete-stack --stack-name SqsDlqLambdaCreation --endpoint-url=http://localhost:4566 --profile localstack

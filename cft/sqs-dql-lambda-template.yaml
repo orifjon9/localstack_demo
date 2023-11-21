@@ -1,0 +1,72 @@
+AWSTemplateFormatVersion: "2010-09-09"
+
+Resources:
+  MySqsQueue:
+    Type: "AWS::SQS::Queue"
+    Properties:
+      QueueName: "orifjon-test-queue"
+      MessageRetentionPeriod: 86400
+      VisibilityTimeout: 30
+
+  MyDlqQueue:
+    Type: "AWS::SQS::Queue"
+    Properties:
+      QueueName: "orifjon-test-dlq"
+      RedrivePolicy:
+        deadLetterTargetArn: !GetAtt MySqsQueue.Arn
+        maxReceiveCount: 5
+      MessageRetentionPeriod: 86400
+      VisibilityTimeout: 30
+
+  MyLambdaExecutionRole:
+    Type: "AWS::IAM::Role"
+    Properties:
+      RoleName: "orifjon-test-execution-role"
+      AssumeRolePolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          - Effect: "Allow"
+            Principal:
+              Service: "lambda.amazonaws.com"
+            Action: "sts:AssumeRole"
+      Policies:
+        - PolicyName: "orifjon-test-lambda-policy"
+          PolicyDocument:
+            Version: "2012-10-17"
+            Statement:
+              - Effect: "Allow"
+                Action:
+                  - "logs:CreateLogGroup"
+                  - "logs:CreateLogStream"
+                  - "logs:PutLogEvents"
+                Resource: "*"
+              - Effect: "Allow"
+                Action:
+                  - "sqs:SendMessage"
+                  - "sqs:ReceiveMessage"
+                  - "sqs:DeleteMessage"
+                Resource: !GetAtt MySqsQueue.Arn
+
+  MyLambdaFunction:
+    Type: "AWS::Lambda::Function"
+    Properties:
+      FunctionName: "orifjon-test-lambda-function"
+      Handler: "index.handler"
+      Role: !GetAtt MyLambdaExecutionRole.Arn
+      Runtime: "nodejs14.x"
+      Timeout: 10
+      Code:
+        ZipFile: |
+          exports.handler = async (event) => {
+            console.log('Hello, World!');
+            return {
+              statusCode: 200,
+              body: JSON.stringify('Hello, World!'),
+            };
+          };
+
+  MySqsQueueEventSourceMapping:
+    Type: "AWS::Lambda::EventSourceMapping"
+    Properties:
+      EventSourceArn: !GetAtt MySqsQueue.Arn
+      FunctionName: !GetAtt MyLambdaFunction.Arn
